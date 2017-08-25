@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # TO DO
+# VIDEO ERR WARNING SHOWING UP
 # setting network
 # cpu
 # video etc.
@@ -24,6 +25,7 @@ VB="VBoxManage"
 NETWORK_CARD_TYPE=("NAT" "NAT Network" "Bridged" "Inner Net" "Isolated Network")
 NETWORK_INTERFACES=($(netstat -i | awk '{if ( NR > 2 ) print $1}'))
 CABLE_CONNECTED=""
+CARDS_COUNT=0
 ###############################
 #####			  							#####
 #####      FUNCTIONS      #####
@@ -35,7 +37,6 @@ function DEBUG() {
 
 function FUNCTION_CABLE_CONNECED(){
 	while true; do
-		clear
 		read -p "Cable connected? Write full words. (on/off): " CABLE_CONNECTED
 			if [ $CABLE_CONNECTED == "on" ] || [ $CABLE_CONNECTED == "no "]; then
 				break
@@ -43,7 +44,6 @@ function FUNCTION_CABLE_CONNECED(){
 				read -n 1 -s -r -p "Your input is not corrected!\nPress any key to continue"
 			fi
 	done
-	clear
 }
 ###########################################################
 ##########	     		DEBUG TESTS HERE						###########
@@ -141,25 +141,20 @@ while true; do
 	fi
 	break
 done
-DEBUG 1
-for (( i=0; i<CARDS_COUNT; i++ )); do
+for (( i=0; i<$CARDS_COUNT; i++ )); do
 	clear
-	DEBUG 2
-	for ((j=0; i < 5; j++)); do
-		DEBUG 3
+	for ((j=0; j < 5; j++)); do
 		echo "$(($j + 1)). ${NETWORK_CARD_TYPE[$j]}"
 	done
 	read -p "Write number which type of card it will be: " CARD_TYPE
-	if [ $CARD_TYPE -eq 1 ]; then
+	if [ $CARD_TYPE -eq 1 ] ; then
 		FUNCTION_CABLE_CONNECED
 		$VB modifyvm $NAME --nic$(($i+1)) nat --cableconnected$(($i+1)) $CABLE_CONNECTED
-	elif [ $CARD_TYPE -eq 2 ]; then
-# nat network	FUNCTION_CABLE_CONNECED()
-	elif [ $CARD_TYPE -eq 3 ]; then
+	elif [ $CARD_TYPE -eq 3 ] ; then
 		while true; do
 			clear
-			for ((i=0; i < ${#NETWORK_INTERFACES[@]}; i++)); do
-				print $(($i+1)). ${NETWORK_INTERFACES[$i]}
+			for ((j=0; j < ${#NETWORK_INTERFACES[@]}; j++)); do
+				printf "$(($j+1)). ${NETWORK_INTERFACES[$j]}\n"
 			done
 			read -p "Write number which interface wil bridge: " BRIDGE_ADAPTER
 			if  ! [[ $BRIDGE_ADAPTER =~ $RE ]] || [ $BRIDGE_ADAPTER -lt 1 ] || [ $BRIDGE_ADAPTER -gt ${#NETWORK_INTERFACES[@]} ]; then
@@ -170,18 +165,9 @@ for (( i=0; i<CARDS_COUNT; i++ )); do
 			break
 		done
 		FUNCTION_CABLE_CONNECED
-		$VB modifyvm $NAME --nic$(($i+1)) bridged --bridgeadapter$(($i+1)) $BRIDGE_ADAPTER --cableconnected$(($i+1)) $CABLE_CONNECTED
-# bridge	FUNCTION_CABLE_CONNECED()
-	elif [ $CARD_TYPE -eq 4 ]; then
-# iner net	FUNCTION_CABLE_CONNECED()
-	elif [ $CARD_TYPE -eq 5 ]; then
-# isolated	FUNCTION_CABLE_CONNECED()
-	else
-		FUNCTION_CABLE_CONNECED
+		$VB modifyvm $NAME --nic$(($i+1)) bridged --bridgeadapter$(($i+1)) $NETWORK_INTERFACES[$(($BRIDGE_ADAPTER-1))] --cableconnected$(($i+1)) $CABLE_CONNECTED
 	fi
-	$VB modifyvm $NAME
 done
-
 read -p "Do you want to start machine? Write  y  if yes, anything else if no: " DECISION
 if [ $DECISION == "y" ] ; then
 	$VB startvm $NAME &
