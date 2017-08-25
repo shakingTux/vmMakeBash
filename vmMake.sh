@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# TO DO
+# setting network
+# cpu
+# video etc.
 #######################################
 #######################################
 #
@@ -7,22 +12,26 @@
 #
 #######################################
 #######################################
+# DONE
 # create machine
 # create disk
 # mount .iso
-# setting bridge
+#
 
 # variables
-RE='^[0-9]+$' 
+RE='^[0-9]+$'
 VB="VBoxManage"
 NETWORK_CARD_TYPE=("NAT" "NAT Network" "Bridged" "Inner Net" "Isolated Network")
 NETWORK_INTERFACES=($(netstat -i | awk '{if ( NR > 2 ) print $1}'))
-
+CABLE_CONNECTED=""
 ###############################
-#####			  #####
+#####			  							#####
 #####      FUNCTIONS      #####
 #####                     #####
 ###############################
+function DEBUG() {
+	echo $1
+}
 
 function FUNCTION_CABLE_CONNECED(){
 	while true; do
@@ -37,17 +46,14 @@ function FUNCTION_CABLE_CONNECED(){
 	clear
 }
 ###########################################################
-##########	     DEBUG TESTS HERE		###########
+##########	     		DEBUG TESTS HERE						###########
 ###########################################################
-for ((i=0; i < ${#NETWORK_INTERFACES[@]}; i++)); do
-	printf "$(($i+1)). ${NETWORK_INTERFACES[$i]}\n"
-done
-exit 0
+
 ###########################################################
 
 
 ###############################
-#####			  #####
+#####			  							#####
 #####         MAIN        #####
 #####                     #####
 ###############################
@@ -73,7 +79,7 @@ $VB createvm --name $NAME --register
 $VB createhd --filename /home/$USER/VirtualBox\ VMs/$NAME/$NAME.vdi  --size $DISK_SIZE 2>/dev/null
 
 
-# NOW USER INPUT 
+# NOW USER INPUT
 # LIST WIP
 while true; do
 	clear
@@ -107,7 +113,7 @@ $VB storageattach $NAME --storagectl "IDE Controller" --port 0 --device 0 --type
 while true; do
 	clear
 	read -e -p "Write here path to your .iso drive wchich you want use to install: " ISO_PATH
-	exist=$(ls $ISO_PATH) 
+	exist=$(ls $ISO_PATH)
 	if [ $# -ne 0 ] ; then
 		echo "File does not exists"
 		read -n 1 -s -r -p "Press any key to continue"
@@ -119,7 +125,7 @@ $VB storageattach $NAME --storagectl "IDE Controller" --port 1 --device 0 --type
 
 
 ###############################
-#####			  #####
+#####			  							#####
 #####       NETWORK       #####
 #####                     #####
 ###############################
@@ -135,49 +141,46 @@ while true; do
 	fi
 	break
 done
-for (( i=1; i<=CARD_COUNT; i++ )); do
+DEBUG 1
+for (( i=0; i<CARDS_COUNT; i++ )); do
 	clear
-	for ((i=1; i < 6; i++)); do echo "$(($i + 1)). ${NETWORK_CARD_TYPE[$i]}"; done
+	DEBUG 2
+	for ((j=0; i < 5; j++)); do
+		DEBUG 3
+		echo "$(($j + 1)). ${NETWORK_CARD_TYPE[$j]}"
+	done
 	read -p "Write number which type of card it will be: " CARD_TYPE
 	if [ $CARD_TYPE -eq 1 ]; then
-		FUNCTION_CABLE_CONNECED()
+		FUNCTION_CABLE_CONNECED
 		$VB modifyvm $NAME --nic$(($i+1)) nat --cableconnected$(($i+1)) $CABLE_CONNECTED
-	elif [ $CARD_TYPE -eq 2 ]
+	elif [ $CARD_TYPE -eq 2 ]; then
 # nat network	FUNCTION_CABLE_CONNECED()
-	elif [ $CARD_TYPE -eq 3 ]
+	elif [ $CARD_TYPE -eq 3 ]; then
 		while true; do
 			clear
 			for ((i=0; i < ${#NETWORK_INTERFACES[@]}; i++)); do
 				print $(($i+1)). ${NETWORK_INTERFACES[$i]}
 			done
-			read -p "Write number which interface wil bridge: " BRIDGE_INTERFACE
-			if  ! [[ $BRIDGE_INTERFACE =~ $RE ]] || [ $BRIDGE_INTERFACE -lt 1 ] || [ $BRIDGE_INTERFACE -gt ${#NETWORK_INTERFACES[@]} ]; then
+			read -p "Write number which interface wil bridge: " BRIDGE_ADAPTER
+			if  ! [[ $BRIDGE_ADAPTER =~ $RE ]] || [ $BRIDGE_ADAPTER -lt 1 ] || [ $BRIDGE_ADAPTER -gt ${#NETWORK_INTERFACES[@]} ]; then
 				echo "You have written wrong values!"
 				read -n 1 -s -r -p "Press any key to continue"
 				continue
 			fi
 			break
 		done
-		FUNCTION_CABLE_CONNECED()
-		$VB modifyvm $NAME --nic$(($i+1)) bridged --cableconnected$(($i+1)) $CABLE_CONNECTED
+		FUNCTION_CABLE_CONNECED
+		$VB modifyvm $NAME --nic$(($i+1)) bridged --bridgeadapter$(($i+1)) $BRIDGE_ADAPTER --cableconnected$(($i+1)) $CABLE_CONNECTED
 # bridge	FUNCTION_CABLE_CONNECED()
-	elif [ $CARD_TYPE -eq 4 ]
+	elif [ $CARD_TYPE -eq 4 ]; then
 # iner net	FUNCTION_CABLE_CONNECED()
-	elif [ $CARD_TYPE -eq 5 ]
+	elif [ $CARD_TYPE -eq 5 ]; then
 # isolated	FUNCTION_CABLE_CONNECED()
-	else 
-		FUNCTION_CABLE_CONNECED()
+	else
+		FUNCTION_CABLE_CONNECED
 	fi
 	$VB modifyvm $NAME
 done
-
-##############################
-$VB modifyvm $NAME --nic1 bridged --bridgeadapter1 wlp3s0 --cableconnected1 on
-
-
-
-
-
 
 read -p "Do you want to start machine? Write  y  if yes, anything else if no: " DECISION
 if [ $DECISION == "y" ] ; then
@@ -185,4 +188,5 @@ if [ $DECISION == "y" ] ; then
 else
 	exit 0
 fi
+clear
 exit 0
