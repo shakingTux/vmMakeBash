@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # TO DO
-# VIDEO ERR WARNING SHOWING UP
+# by priority
 # setting network
+# parameters - script behavior with and without ()
 # cpu
+# VIDEO ERR WARNING SHOWING UP
 # video etc.
 #######################################
 #######################################
@@ -20,19 +22,33 @@
 #
 
 # variables
+# negative values - if yes read input from user otherwise it\'s script parameter
 RE='^[0-9]+$'
 VB="VBoxManage"
 NETWORK_CARD_TYPE=("NAT" "NAT Network" "Bridged" "Inner Net" "Isolated Network")
+NETWORK_CARDS_COUNT=-1
 NETWORK_INTERFACES=($(netstat -i | awk '{if ( NR > 2 ) print $1}'))
-CABLE_CONNECTED=""
-CARDS_COUNT=0
+CABLE_CONNECTED="off"
+CARDS_COUNT=-1
+CPU_COUNT=-1
+CPU_EXECUTION_CAP=-100
+MEMORY_SIZE=-1
+
 ###############################
 #####			  							#####
 #####      FUNCTIONS      #####
 #####                     #####
 ###############################
-function DEBUG() {
+function DEBUG(){
 	echo $1
+}
+
+function FUNCTION_HELP(){
+	echo -n "Simple bash script for creating VitrualMachines with VirtualBox CLI:
+	Usage: vmMake.sh [option]...
+	-h --help\t show this info
+	"
+	exit 0
 }
 
 function FUNCTION_CABLE_CONNECED(){
@@ -45,6 +61,53 @@ function FUNCTION_CABLE_CONNECED(){
 			esac
 	done
 }
+
+###############################
+#####			  	WIP					#####
+#####      PARAMETRS      #####
+#####                     #####
+###############################
+
+while [[ $# -ge 1 ]]
+do
+	option="$1"
+	case ${option} in
+		-h|--help)
+			FUNCTION_HELP
+			shift
+			;;
+		-m|--memory)
+			shift
+			if ! [[ $1 =~ $RE ]]; then
+				echo "MEMORY_SIZE wrong value!\nExiting"
+				exit 1
+			MEMORY_SIZE=$1
+			shift
+			;;
+		-c|--cpu-count)
+			shift
+			if ! [[ $1 =~ $RE ]]; then
+				echo "CPU_COUNT wrong value!\nExiting"
+				exit 1
+			CPU_COUNT=$1
+			;;
+		-C|--cpu-execution-cap)
+			shift
+			if ! [[ $1 =~ $RE ]]; then
+				echo "CPU_EXECUTION_CAP wrong value\nExiting"
+				exit 1
+			CPU_EXECUTION_CAP=$1
+			;;
+		-n|--network-cards-count)
+			shift
+			if ! [[ $1 =~ $RE ]]; then
+				echo "NETWORK_CARDS_COUNT wrong value\nExiting"
+				exit
+	esac
+done
+
+
+
 ###########################################################
 ##########	     		DEBUG TESTS HERE						###########
 ###########################################################
@@ -121,6 +184,15 @@ while true; do
 	break
 done
 $VB storageattach $NAME --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium $ISO_PATH
+###############################
+#####			  							#####
+#####         CPU         #####
+#####         GPU         #####
+#####                     #####
+###############################
+
+$VB modifyvm $NAME
+
 
 
 ###############################
