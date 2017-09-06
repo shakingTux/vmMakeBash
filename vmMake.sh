@@ -23,38 +23,43 @@
 
 # variables
 # negative values - if yes read input from user otherwise it\'s script parameter
-RE='^[0-9]+$'
+re='^[0-9]+$'
 VB="VBoxManage"
-NETWORK_CARD_TYPE=("NAT" "NAT Network" "Bridged" "Inner Net" "Isolated Network")
-NETWORK_CARDS_COUNT=-1
-NETWORK_INTERFACES=($(netstat -i | awk '{if ( NR > 2 ) print $1}'))
-CABLE_CONNECTED="off"
-CARDS_COUNT=-1
-CPU_COUNT=-1
-CPU_EXECUTION_CAP=-100
-MEMORY_SIZE=-1
+network_card_type=("NAT" "NAT Network" "Bridged" "Inner Net" "Isolated Network")
+network_cards_count=-1
+network_interfaces=($(netstat -i | awk '{if ( NR > 2 ) print $1}'))
+cable_connected="off"
+cards_count=-1
+cpu_count=-1
+cpu_execution_cap=-100
+memory_size=-1
 
 ###############################
 #####			  							#####
 #####      FUNCTIONS      #####
 #####                     #####
 ###############################
-function DEBUG(){
+function debug(){
 	echo $1
 }
 
-function FUNCTION_HELP(){
+function function_help(){
 	echo -n "Simple bash script for creating VitrualMachines with VirtualBox CLI:
-	Usage: vmMake.sh [option]...
-	-h --help\t show this info
-	"
+Usage: vmMake.sh [option]... [value]
+-h --help			show this info
+-m --memory			set ram amount
+-c --cpu-count			number of CPU
+-C --cpu-execution-cap		execution cup <0-100> (in %)
+-n --network-cards-count	number of network cards
+-N --name			name of the vm
+"
 	exit 0
 }
 
-function FUNCTION_CABLE_CONNECED(){
+function function_cable_connected(){
 	while true; do
-		read -p "Cable connected? (on/off): " CABLE_CONNECTED
-			case "$CABLE_CONNECTED" in
+		read -p "Cable connected? (on/off): " cable_connected
+			case "$cable_connected" in
 				"on") break ;;
 				"off") break ;;
 				*) read -n 1 -s -r -p "Your input is not corrected!\nPress any key to continue"
@@ -73,43 +78,56 @@ do
 	option="$1"
 	case ${option} in
 		-h|--help)
-			FUNCTION_HELP
+			function_help
 			shift
 			;;
 		-m|--memory)
 			shift
-			if ! [[ $1 =~ $RE ]]; then
-				echo "MEMORY_SIZE wrong value!\nExiting"
+			if ! [[ $1 =~ $re ]]; then
+				echo "memory_size wrong value!\nExiting"
 				exit 1
-			MEMORY_SIZE=$1
+			fi
+			memory_size=$1
 			shift
 			;;
 		-c|--cpu-count)
 			shift
-			if ! [[ $1 =~ $RE ]]; then
-				echo "CPU_COUNT wrong value!\nExiting"
+			if ! [[ $1 =~ $re ]]; then
+				echo "cpu_count wrong value!\nExiting"
 				exit 1
-			CPU_COUNT=$1
+			fi
+			cpu_count=$1
 			;;
 		-C|--cpu-execution-cap)
 			shift
-			if ! [[ $1 =~ $RE ]]; then
-				echo "CPU_EXECUTION_CAP wrong value\nExiting"
+			if ! [[ $1 =~ $re ]]; then
+				echo "cpu_execution_cap wrong value\nExiting"
 				exit 1
-			CPU_EXECUTION_CAP=$1
+			fi
+			cpu_execution_cap=$1
 			;;
 		-n|--network-cards-count)
 			shift
-			if ! [[ $1 =~ $RE ]]; then
-				echo "NETWORK_CARDS_COUNT wrong value\nExiting"
-				exit
+			if ! [[ $1 =~ $re ]]; then
+				echo "network_cards_count wrong value\nExiting"
+				exit 1
+			fi
+			;;
+		-N|--name)
+			shift
+			if [[ -z $1 ]];then
+				echo "name is empty\nExiting\n"
+				exit 1
+			fi
+			NAME=$1
+			;;
 	esac
 done
 
 
 
 ###########################################################
-##########	     		DEBUG TESTS HERE						###########
+##########	     		debug TESTS HEre						###########
 ###########################################################
 
 ###########################################################
@@ -130,7 +148,7 @@ read -p "Write how VM should name: " NAME
 while true; do
 	clear
 	read -p "Write disk size (MB): " DISK_SIZE
-	if ! [[ $DISK_SIZE =~ $RE ]] ; then
+	if ! [[ $DISK_SIZE =~ $re ]] ; then
 		read -n 1 -s -p "Size can contain only numbers!\nPress any key to continue"
 		continue
 	fi
@@ -158,15 +176,15 @@ done
 
 while true; do
 	clear
-	read -p "Write memory size (MB): " MEMORY_SIZE
-	if ! [[ $MEMORY_SIZE =~ $RE ]] ; then
+	read -p "Write memory size (MB): " memory_size
+	if ! [[ $memory_size =~ $re ]] ; then
 		read -n 1 -s -p "Size can contain only numbers!\nPress any key to continue"
 		continue
 	fi
 	break
 done
 
-$VB modifyvm $NAME --memory $MEMORY_SIZE
+$VB modifyvm $NAME --memory $memory_size
 
 # STORAGE CONTROLER FOR NOW WITHOUT SELECTION
 $VB storagectl $NAME --name "IDE Controller" --add ide
@@ -175,8 +193,8 @@ $VB storageattach $NAME --storagectl "IDE Controller" --port 0 --device 0 --type
 while true; do
 	clear
 	read -e -p "Write here path to your .iso drive wchich you want use to install: " ISO_PATH
-	exist=$(ls $ISO_PATH)
-	if [ $# -ne 0 ] ; then
+	#exist=$(ls $ISO_PATH)     DELETE?
+	if [ ! -f $ISO_PATH ] ; then
 		echo "File does not exists"
 		read -n 1 -s -r -p "Press any key to continue"
 		clear
@@ -205,43 +223,43 @@ $VB modifyvm $NAME
 # BRIDGE SOMETHING FUCKED UP
 clear
 while true; do
-	read -p "Write how many network cards you want: " CARDS_COUNT
-	if ! [[ $CARDS_COUNT =~ $RE ]] ; then
+	read -p "Write how many network cards you want: " cards_count
+	if ! [[ $cards_count =~ $re ]] ; then
 		read -n 1 -s -p "Only numbers are allowed!\nPress any key to continue"
 		continue
 	fi
 	break
 done
-for (( i=0; i<$CARDS_COUNT; i++ )); do
+for (( i=0; i<$cards_count; i++ )); do
 	clear
 	for ((j=0; j < 5; j++)); do
-		echo "$(($j + 1)). ${NETWORK_CARD_TYPE[$j]}"
+		echo "$(($j + 1)). ${network_card_type[$j]}"
 	done
 	read -p "Write number which type of card it will be: " CARD_TYPE
 	case "$CARD_TYPE" in
 		1)
-			FUNCTION_CABLE_CONNECED
-			$VB modifyvm $NAME --nic$(($i+1)) nat --cableconnected$(($i+1)) $CABLE_CONNECTED
+			function_cable_connected
+			$VB modifyvm $NAME --nic$(($i+1)) nat --cableconnected$(($i+1)) $cable_connected
 			;;
 		2)
 			;;
 		3)
 			while true; do
 				clear
-				for ((j=0; j < ${#NETWORK_INTERFACES[@]}; j++)); do
-					printf "$(($j+1)). ${NETWORK_INTERFACES[$j]}\n"
+				for ((j=0; j < ${#network_interfaces[@]}; j++)); do
+					printf "$(($j+1)). ${network_interfaces[$j]}\n"
 				done
 				read -p "Write number which interface wil bridge: " BRIDGE_ADAPTER
-				if  ! [[ $BRIDGE_ADAPTER =~ $RE ]] || [ $BRIDGE_ADAPTER -lt 1 ] || \
-					[ $BRIDGE_ADAPTER -gt ${#NETWORK_INTERFACES[@]} ]; then
+				if  ! [[ $BRIDGE_ADAPTER =~ $re ]] || [ $BRIDGE_ADAPTER -lt 1 ] || \
+					[ $BRIDGE_ADAPTER -gt ${#network_interfaces[@]} ]; then
 					read -n 1 -s -p "You have written wrong values!\nPress any key to continue"
 					continue
 				fi
 				break
 			done
-			FUNCTION_CABLE_CONNECED
+			function_cable_connected
 			$VB modifyvm $NAME --nic$(($i+1)) bridged --bridgeadapter$(($i+1)) \
-				$NETWORK_INTERFACES[$(($BRIDGE_ADAPTER-1))] --cableconnected$(($i+1)) $CABLE_CONNECTED
+				$network_interfaces[$(($BRIDGE_ADAPTER-1))] --cableconnected$(($i+1)) $cable_connected
 			;;
 		4)
 			;;
@@ -251,7 +269,7 @@ for (( i=0; i<$CARDS_COUNT; i++ )); do
 			read -n 1 -s -p "You have written wrong values!\nPress any key to continue"
 	esac
 done
-read -p "Do you want to start machine?\nRemember to change boot order after installation!\n
+read -p "Do you want to start machine?\nremember to change boot order after installation!\n
 	Write  y  if yes, anything else if no: " DECISION
 case option in
 	y)
